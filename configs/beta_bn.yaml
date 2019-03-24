@@ -1,0 +1,16 @@
+data_path: "/home/daniel/ssd/data/dsprites-dataset"
+# FC_ENCODER = 1
+# CONV_ENCODER = 2
+# CONV_BN_ENCODER = 3
+encoder: 1
+# FC_DECODER = 1
+# DECONV_DECODER = 2
+# DECONV_BN_DECODER = 3
+decoder: 1
+# L2_LOSS = 1
+# BERNOULLI = 2
+rec_loss: 2
+beta: 4.0
+z_dim: 10
+lr: 0.0005
+reduction: "mean"
