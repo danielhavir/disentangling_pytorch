@@ -26,7 +26,7 @@ class AverageMeter(object):
 
 class Experiment(object):
     def __init__(self, config, logger, seed=42, multi_gpu=False, eval_interval=10000,
-    log_interval=2500, visdom=True):
+    log_interval=2500, visdom=True, no_snaps=False):
         """
         Args:
             config: SimpleNamespace with loaded configurations
@@ -43,8 +43,9 @@ class Experiment(object):
         self.multi_gpu = multi_gpu
         self.eval_interval = eval_interval
         self.log_interval = log_interval
+        self.no_snaps = no_snaps
         self.set_seed(seed)
-        if config.dataset.lower() == "dsprites":
+        if config.dataset == datasets.DSPRITES:
             self.dataset = datasets.DSprites(self.config.data_path)
         else:
             self.dataset = datasets.ImageDataset(self.config.data_path)
@@ -63,7 +64,7 @@ class Experiment(object):
         print(self.model)
 
         if visualize.VISUALIZE and visdom:
-            self.visualizer = visualize.Visualizer(self.config.name)
+            self.visualizer = visualize.Visualizer(self.config.name, save=(not no_snaps), output_dir=config.RUN_DIR)
         else:
             self.visualizer = None
         
@@ -85,14 +86,11 @@ class Experiment(object):
         torch.manual_seed(seed)
     
     def save_model(self, snap_fname):
-        try:
+        if not self.no_snaps:
             if self.multi_gpu:
                 torch.save(self.model.module.state_dict(), os.path.join(self.config.RUN_DIR, snap_fname))
             else:
                 torch.save(self.model.state_dict(), os.path.join(self.config.RUN_DIR, snap_fname))
-        # no_snaps flag
-        except:
-            pass
     
     def train(self):
         global pbar
@@ -131,6 +129,10 @@ class Experiment(object):
 
                     if self.visualizer is not None:
                         self.visualizer.show_reconstructions(data, reconstructions, iter_n=str(num_iter))
+                        for index in datasets.get_traversal_indices(self.config.dataset):
+                            latent_vector = self.model.encoder(self.dataset[index].to(device).unsqueeze(0))[0, :self.model.z_dim]
+                            self.visualizer.traverse(self.model.decoder, latent_vector, iter_n=f"{num_iter}-{index}")
+
                 
                 if num_iter >= self.config.max_iter:
                     break

@@ -9,6 +9,10 @@ import numpy as np
 import cv2
 from PIL import Image
 
+DSPRITES = 1
+CELEBA = 2
+CHAIRS = 3
+
 def cv_loader(path, size):
     """ Loads 1000 images in ~7.41s """
     # OpenCV imread is faster than PIL
@@ -146,3 +150,15 @@ class ImageFileDataset(_Dset):
         img = torch.from_numpy(img).float().div_(255)
         return self.normalize(img)
 
+def get_traversal_indices(dataset_enum):
+    """ Based on dataset int identifier (enum), returns a list of arbitrarily hand-picked
+    indices for example traversing.
+    """
+    if dataset_enum == DSPRITES:
+        return [575850, 80, 350000]
+    elif dataset_enum == CELEBA:
+        return [154273, 196477, 147234, 125868]
+    elif dataset_enum == CHAIRS:
+        return [81436, 28547, 23965]
+    else:
+        raise ValueError(f"unknown dataset_enum, received {dataset_enum}")

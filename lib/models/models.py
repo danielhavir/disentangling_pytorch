@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 import math
+from enum import Enum, unique
 
 import lib.models.losses as losses
 import lib.models.model_parts as model_parts
-
+    
 class VAE(nn.Module):
     """Base model architecture"""
     def __init__(self, z_dim, inplanes=3, input_size=64,

@@ -7,7 +7,8 @@ from lib.data.config import get_config_logger
 
 def main(args):
     config, logger = get_config_logger(args.config, no_snaps=args.no_snaps)
-    exp = Experiment(config, logger, multi_gpu=args.multi_gpu, eval_interval=args.eval_interval)
+    exp = Experiment(config, logger, multi_gpu=args.multi_gpu, eval_interval=args.eval_interval,
+    no_snaps=args.no_snaps)
     exp.train()
 
 if __name__ == "__main__":

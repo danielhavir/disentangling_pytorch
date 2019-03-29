@@ -1,4 +1,8 @@
 data_path: "/home/daniel/ssd/data/dsprites-dataset"
+# DSPRITES = 1
+# CELEBA = 2
+# CHAIRS = 3
+dataset: 1
 # FC_ENCODER = 1
 # CONV_ENCODER = 2
 # CONV_BN_ENCODER = 3

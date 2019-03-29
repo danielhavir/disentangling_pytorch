@@ -7,6 +7,7 @@ from collections import namedtuple
 import time
 import logging
 
+import lib.data.datasets as datasets
 import lib.models.model_parts as model_parts
 import lib.models.losses as losses
 
@@ -71,7 +72,7 @@ def get_config_logger(path, no_snaps=False):
     if not config.get("image_size", False):
         config["image_size"] = 64
     if not config.get("dataset", False):
-        config["dataset"] = "dsprites"
+        config["dataset"] = datasets.DSPRITES
     if not config.get("max_iter", False):
         config["max_iter"] = 1e6
     if not config.get("data_path", False):
