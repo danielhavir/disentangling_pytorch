@@ -78,6 +78,7 @@ def get_config_logger(path, no_snaps=False):
     if not config.get("data_path", False):
         config["data_path"] = os.environ["data"]
     config["tcvae"] = config.get("tcvae", False)
+    config["in_memory"] = config.get("in_memory", False)
     if config["rec_loss"] == losses.BERNOULLI:
         config["subtract_entropy"] = config.get("subtract_entropy", False)
     if config["rec_loss"] == losses.L2_LOSS:

@@ -57,7 +57,7 @@ class VAE(nn.Module):
         reconstructions = self.decoder(z)
         kl_loss = losses.kl_divergence(mu, logvar)
         regularizer = self.regularizer(kl_loss, mu, logvar, z)
-        reconstruction_loss = losses.reconstruction_loss(reconstructions, x, config).mean()
+        reconstruction_loss = losses.reconstruction_loss(reconstructions, x, config)
         elbo = reconstruction_loss.add(kl_loss)
         loss = reconstruction_loss.add(regularizer)
         return reconstructions, z, mu, logvar, reconstruction_loss, loss, -elbo, kl_loss

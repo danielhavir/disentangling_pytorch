@@ -47,8 +47,11 @@ class Experiment(object):
         self.set_seed(seed)
         if config.dataset == datasets.DSPRITES:
             self.dataset = datasets.DSprites(self.config.data_path)
-        else:
+        elif config.in_memory:
+            # Load data into memory
             self.dataset = datasets.ImageDataset(self.config.data_path)
+        else:
+            self.dataset = datasets.ImageFileDataset(self.config.data_path)
         self.logger.info(f"Dataset {config.dataset} loaded")
         
         if self.config.tcvae:
@@ -64,7 +67,7 @@ class Experiment(object):
         print(self.model)
 
         if visualize.VISUALIZE and visdom:
-            self.visualizer = visualize.Visualizer(self.config.name, save=(not no_snaps), output_dir=config.RUN_DIR)
+            self.visualizer = visualize.Visualizer(self.config.name, save=False) if no_snaps else visualize.Visualizer(self.config.name, save=True, output_dir=config.RUN_DIR)
         else:
             self.visualizer = None
         
@@ -132,8 +135,9 @@ class Experiment(object):
                         for index in datasets.get_traversal_indices(self.config.dataset):
                             latent_vector = self.model.encoder(self.dataset[index].to(device).unsqueeze(0))[0, :self.model.z_dim]
                             self.visualizer.traverse(self.model.decoder, latent_vector, iter_n=f"{num_iter}-{index}")
-
+                        
+                        self.visualizer.plot_means(z.cpu())
                 
                 if num_iter >= self.config.max_iter:
-                    break
+                    return
 

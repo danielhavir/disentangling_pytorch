@@ -14,20 +14,20 @@ class Visualizer(object):
         self.name = name
         self.plots = dict()
         self.save = save
-        if not os.path.exists(output_dir):
-            raise ValueError("output_dir does not exists")
+        if save:
+            if not os.path.exists(output_dir):
+                raise ValueError("output_dir does not exists")
+            
+            # output directory for reconstructions
+            self.recon_dir = os.path.join(output_dir, "reconstructions")
+            if not os.path.exists(self.recon_dir):
+                os.mkdir(self.recon_dir)
+            
+            # output directory for traversals
+            self.trav_dir = os.path.join(output_dir, "traversals")
+            if not os.path.exists(self.trav_dir):
+                os.mkdir(self.trav_dir)
         
-        # output directory for reconstructions
-        self.recon_dir = os.path.join(output_dir, "reconstructions")
-        if not os.path.exists(self.recon_dir):
-            os.mkdir(self.recon_dir)
-        
-        # output directory for traversals
-        self.trav_dir = os.path.join(output_dir, "traversals")
-        if not os.path.exists(self.trav_dir):
-            os.mkdir(self.trav_dir)
-        
-
     def traverse(self, decoder, latent_vector, dims=None, num_traversals=None, iter_n=""):
         """ Traverses a latent vector along a given dimension(s).
         Args:
@@ -52,7 +52,7 @@ class Visualizer(object):
         elif not isinstance(num_traversals, int):
             raise ValueError(f"num_traversals must either be an int, received {type(num_traversals)}")
         
-        traversals = torch.linspace(-1., 1., steps=num_traversals).to(latent_vector.device)
+        traversals = torch.linspace(-3., 3., steps=num_traversals).to(latent_vector.device)
 
         reconstructions = []
         for dim in dims:
@@ -68,7 +68,6 @@ class Visualizer(object):
         if self.save:
             torchvision.utils.save_image(reconstructions, os.path.join(self.trav_dir, f"traversals-{iter_n}.png"), normalize=True, nrow=len(dims))
 
-    
     def show_reconstructions(self, images, reconstructions, iter_n=""):
         """ Plots the ELBO loss, reconstruction loss and KL divergence
         Args:
@@ -83,7 +82,7 @@ class Visualizer(object):
 
         if self.save:
             torchvision.utils.save_image(original, os.path.join(self.recon_dir, f"original-{iter_n}.png"), normalize=True)
-            torchvision.utils.save_image(reconstructions, os.path.join(self.recon_dir, f"reconstructed-{iter_n}.png"), normalize=True)
+            torchvision.utils.save_image(torch.sigmoid(reconstructions), os.path.join(self.recon_dir, f"reconstructed-{iter_n}.png"), normalize=True)
     
     def __init_plots(self, iter_n, elbo, reconstruction_loss, kl_loss):
         self.plots["elbo"] = self.visdom.line(torch.tensor([elbo]), X=torch.tensor([iter_n]),
@@ -117,3 +116,12 @@ class Visualizer(object):
         win=self.plots["kl_loss"], update="append", env=self.name+"-stats",
         opts={"title": "KL Divergence", "width": 600, "height": 500})
 
+    def plot_means(self, z):
+        """ Plots dimension-wise boxplot 
+        """
+        if not self.plots.get("latent", False):
+            self.plots["latent"] = self.visdom.boxplot(X=z, env=self.name+"-stats",
+            opts={"title": "Latent stats", "width": 1200, "height": 600, "legend": [f"z_{i}" for i in range(1, z.size(1)+1)]})
+        else:
+            self.plots["latent"] = self.visdom.boxplot(X=z, win=self.plots["latent"], update="replace", env=self.name+"-stats",
+            opts={"title": "Latent stats", "width": 1200, "height": 600, "legend": [f"z_{i}" for i in range(1, z.size(1)+1)]})

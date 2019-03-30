@@ -108,11 +108,11 @@ class ImageDataset(_Dset):
         pool = mp.Pool(processes=num_workers)
         loader_fn = partial(cv_loader, size=(64, 64))
         self.data = pool.map(loader_fn, self.paths)
-        if "celeb" in data_dir:
-            self.normalize = Normalize([0.50611186, 0.42542528, 0.3828167], [0.30415685, 0.28379978, 0.28333236])
+        # if "celeb" in data_dir:
+        #     self.normalize = Normalize([0.50611186, 0.42542528, 0.3828167], [0.30415685, 0.28379978, 0.28333236])
         #    super(ImageDataset, self).__init__([10, 20, 100, 24, 10, 10, 20, 32], latent_factor_indices)
-        elif "chairs" in data_dir:
-            self.normalize = Normalize([0.9545367, 0.95292854, 0.9517893], [0.17828687, 0.18361006, 0.18755156])
+        # elif "chairs" in data_dir:
+        #     self.normalize = Normalize([0.9545367, 0.95292854, 0.9517893], [0.17828687, 0.18361006, 0.18755156])
         #    super(ImageDataset, self).__init__([32, 24, 10, 10], latent_factor_indices)
         #self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(self.factor_sizes)
         self.inplanes = 3
@@ -124,7 +124,7 @@ class ImageDataset(_Dset):
     def __getitem__(self, idx):
         img = self.data[idx].transpose(2, 0, 1)
         img = torch.from_numpy(img).float().div_(255)
-        return self.normalize(img)
+        return img
 
 class ImageFileDataset(_Dset):
     """ Reads images from file during training """
@@ -132,11 +132,11 @@ class ImageFileDataset(_Dset):
         data_dir = os.path.join(data_dir, "images")
         self.paths = [os.path.join(data_dir, fname) for fname in os.listdir(data_dir)]
         self.loader_fn = partial(cv_loader, size=(64, 64))
-        if "celeb" in data_dir:
-            self.normalize = Normalize([0.50611186, 0.42542528, 0.3828167], [0.30415685, 0.28379978, 0.28333236])
+        # if "celeb" in data_dir:
+        #     self.normalize = Normalize([0.50611186, 0.42542528, 0.3828167], [0.30415685, 0.28379978, 0.28333236])
         #    super(ImageFileDataset, self).__init__([10, 20, 100, 24, 10, 10, 20, 32], latent_factor_indices)
-        elif "chairs" in data_dir:
-            self.normalize = Normalize([0.9545367, 0.95292854, 0.9517893], [0.0276624, 0.02844673, 0.02887262])
+        # elif "chairs" in data_dir:
+        #     self.normalize = Normalize([0.9545367, 0.95292854, 0.9517893], [0.0276624, 0.02844673, 0.02887262])
         #    super(ImageFileDataset, self).__init__([32, 24, 10, 10], latent_factor_indices)
         #self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(self.factor_sizes)
         self.inplanes = 3
@@ -148,7 +148,7 @@ class ImageFileDataset(_Dset):
     def __getitem__(self, idx):
         img = self.loader_fn(self.paths[idx]).transpose(2, 0, 1)
         img = torch.from_numpy(img).float().div_(255)
-        return self.normalize(img)
+        return img
 
 def get_traversal_indices(dataset_enum):
     """ Based on dataset int identifier (enum), returns a list of arbitrarily hand-picked

@@ -14,7 +14,15 @@ def l2_loss(reconstructions, images, activation, reduction="sum"):
     else:
         raise ValueError("unknown activation function")
 
-    return F.mse_loss(reconstructions, images, reduction=reduction)
+    if reduction == "sum":
+        loss = F.mse_loss(reconstructions, images, reduction="sum")
+    elif reduction == "mean":
+        # Mean per image
+        loss = F.mse_loss(reconstructions, images, reduction="sum").div(images.size(0))
+    else:
+        raise ValueError("parameter reduction must be either \"sum\" or \"mean\"")
+
+    return loss
 
 def bernoulli_loss(reconstructions, images, activation, subtract_entropy=False):
     """Bernoulli loss"""
