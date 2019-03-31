@@ -37,7 +37,6 @@ class Experiment(object):
             log_interval: interval for writing objective function results
             visdom: flag whether to visualize reconstructions
         """
-        global visualize
         self.config = config
         self.logger = logger
         self.multi_gpu = multi_gpu
@@ -57,6 +56,10 @@ class Experiment(object):
         if self.config.tcvae:
             self.model = models.TCVAE(config.z_dim, config.beta, inplanes=self.dataset.inplanes,
             input_size=config.image_size, encoder_fn=config.encoder, decoder_fn=config.decoder)
+        elif self.config.gamma_objective:
+            self.model = models.GammaVAE(config.z_dim, config.gamma, config.C, config.C_steps,
+            inplanes=self.dataset.inplanes, input_size=config.image_size, encoder_fn=config.encoder,
+            decoder_fn=config.decoder)
         elif self.config.beta == 1:
             self.model = models.VAE(config.z_dim, inplanes=self.dataset.inplanes,
             input_size=config.image_size, encoder_fn=config.encoder, decoder_fn=config.decoder)
@@ -111,7 +114,7 @@ class Experiment(object):
                 num_iter += 1
                 optimizer.zero_grad()
                 data = data.to(device)
-                reconstructions, z, mu, logvar, reconstruction_loss, loss, elbo, kl_loss = self.model.forward_with_elbo(data, self.config)
+                reconstructions, z, mu, logvar, reconstruction_loss, loss, elbo, kl_loss = self.model.forward_with_elbo(data, self.config, num_iter)
 
                 loss.backward()
                 optimizer.step()

@@ -117,11 +117,13 @@ class Visualizer(object):
         opts={"title": "KL Divergence", "width": 600, "height": 500})
 
     def plot_means(self, z):
-        """ Plots dimension-wise boxplot 
+        """ Plots dimension-wise boxplot distribution
+        Args:
+            z: (torch.tensor) single batch of latent vector representations
         """
         if not self.plots.get("latent", False):
             self.plots["latent"] = self.visdom.boxplot(X=z, env=self.name+"-stats",
             opts={"title": "Latent stats", "width": 1200, "height": 600, "legend": [f"z_{i}" for i in range(1, z.size(1)+1)]})
         else:
-            self.plots["latent"] = self.visdom.boxplot(X=z, win=self.plots["latent"], update="replace", env=self.name+"-stats",
+            self.plots["latent"] = self.visdom.boxplot(X=z, win=self.plots["latent"], env=self.name+"-stats",
             opts={"title": "Latent stats", "width": 1200, "height": 600, "legend": [f"z_{i}" for i in range(1, z.size(1)+1)]})

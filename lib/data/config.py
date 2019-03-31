@@ -62,7 +62,7 @@ def get_config_logger(path, no_snaps=False):
     if not config.get("activation", False):
         config["activation"] = "logits"
     if not config.get("beta", False):
-        config["beta"] = 2.
+        config["beta"] = 20.
     if not config.get("z_dim", False):
         config["z_dim"] = 10
     if not config.get("lr", False):
@@ -77,8 +77,16 @@ def get_config_logger(path, no_snaps=False):
         config["max_iter"] = 1e6
     if not config.get("data_path", False):
         config["data_path"] = os.environ["data"]
-    config["tcvae"] = config.get("tcvae", False)
     config["in_memory"] = config.get("in_memory", False)
+    config["gamma_objective"] = config.get("gamma_objective", False)
+    config["tcvae"] = config.get("tcvae", False)
+    if config["gamma_objective"] and config["tcvae"]:
+        warnings.warn("using \"tcvae\" flag along with \"gamma_objective\" flag is redundant as only one can be used, using \"tcvae\" flag")
+    elif config["gamma_objective"]:
+        config["gamma"] = config.get("gamma", 1000)
+        config["C"] = config.get("C", 50)
+        config["C_steps"] = config.get("C_steps", 100000)
+        config.pop("beta", None)
     if config["rec_loss"] == losses.BERNOULLI:
         config["subtract_entropy"] = config.get("subtract_entropy", False)
     if config["rec_loss"] == losses.L2_LOSS:
