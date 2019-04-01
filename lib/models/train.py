@@ -169,5 +169,7 @@ class Experiment(object):
                         self.visualizer.plot_means(z.cpu())
                 
                 if num_iter >= self.config.max_iter:
+                    if not self.no_snaps and num_iter % self.eval_interval != 0:
+                        self.save_checkpoint(num_iter)
                     return
 
