@@ -25,7 +25,7 @@ class AverageMeter(object):
         return self.sum / self.count
 
 class Experiment(object):
-    def __init__(self, config, logger, seed=42, multi_gpu=False, eval_interval=10000,
+    def __init__(self, config, logger, ckpt_path=None, seed=42, multi_gpu=False, eval_interval=10000,
     log_interval=2500, visdom=True, no_snaps=False):
         """
         Args:
@@ -68,12 +68,18 @@ class Experiment(object):
             input_size=config.image_size, encoder_fn=config.encoder, decoder_fn=config.decoder)
         self.logger.info("Model built")
         print(self.model)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
 
         if visualize.VISUALIZE and visdom:
             self.visualizer = visualize.Visualizer(self.config.name, save=False) if no_snaps else visualize.Visualizer(self.config.name, save=True, output_dir=config.RUN_DIR)
         else:
             self.visualizer = None
         
+        if ckpt_path is not None:
+            self.start_iter = self.load_checkpoint(ckpt_path)
+        else:
+            self.start_iter = 0
+
         if multi_gpu:
             self.model = torch.nn.DataParallel(self.model)
         
@@ -91,16 +97,36 @@ class Experiment(object):
 
         torch.manual_seed(seed)
     
-    def save_model(self, snap_fname):
-        if not self.no_snaps:
-            if self.multi_gpu:
-                torch.save(self.model.module.state_dict(), os.path.join(self.config.RUN_DIR, snap_fname))
-            else:
-                torch.save(self.model.state_dict(), os.path.join(self.config.RUN_DIR, snap_fname))
+    def save_checkpoint(self, num_iter):
+        checkpoint = dict()
+        if self.multi_gpu:
+            checkpoint["model_state_dict"] = self.model.module.state_dict()
+        else:
+            checkpoint["model_state_dict"] = self.model.state_dict()
+        checkpoint["optimizer_state_dict"] = self.optimizer.state_dict()
+        checkpoint["num_iter"] = num_iter
+        ckpt_path = os.path.join(self.config.RUN_DIR, f"iter_{num_iter}.ckpt")
+        with open(ckpt_path, "wb") as f:
+            torch.save(checkpoint, f)
+    
+    def load_checkpoint(self, ckpt_path):
+        if os.path.exists(ckpt_path):
+            checkpoint = torch.load(ckpt_path)
+            self.model.load_state_dict(checkpoint["model_state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            # Reference: https://github.com/pytorch/pytorch/issues/2830
+            if torch.cuda.is_available():
+                for state in self.optimizer.state.values():
+                    for k, v in state.items():
+                        if torch.is_tensor(v):
+                            state[k] = v.cuda()
+            self.logger.info(f"loaded checkpoint {ckpt_path}")
+            return checkpoint["num_iter"]
+        else:
+            self.logger.warning(f"checkpoint {ckpt_path} not found")
+            return 0
     
     def train(self):
-        global pbar
-        optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         loader = torch.utils.data.DataLoader(self.dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=2)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         elbo_loss = AverageMeter()
@@ -108,16 +134,16 @@ class Experiment(object):
         total_loss = AverageMeter()
         divergence_loss = AverageMeter()
 
-        num_iter = 0
+        num_iter = self.start_iter
         for e in range(int(self.config.max_iter/len(loader))+1):
             for data in loader:
                 num_iter += 1
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 data = data.to(device)
                 reconstructions, z, mu, logvar, reconstruction_loss, loss, elbo, kl_loss = self.model.forward_with_elbo(data, self.config, num_iter)
 
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
 
                 elbo_loss.update(elbo.item(), n=data.size(0))
                 rec_loss.update(reconstruction_loss.item(), n=data.size(0))
@@ -131,7 +157,8 @@ class Experiment(object):
                         self.visualizer.plot_stats(num_iter, elbo_loss.avg(), rec_loss.avg(), divergence_loss.avg())
 
                 if num_iter % self.eval_interval == 0:
-                    self.save_model(f"iter_{num_iter}.model")
+                    if not self.no_snaps:
+                        self.save_checkpoint(num_iter)
 
                     if self.visualizer is not None:
                         self.visualizer.show_reconstructions(data, reconstructions, iter_n=str(num_iter))
